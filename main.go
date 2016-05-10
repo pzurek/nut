@@ -101,23 +101,20 @@ func NewEncoder(w io.Writer) *Encoder {
 func (decoder Decoder) Decode() (interface{}, error) {
 	r := bufio.NewReader(decoder.r)
 	marker, err := r.ReadByte()
-	markerHigh := marker & 0xF0
-
 	if err != nil {
 		return nil, err
 	}
+	markerHigh := marker & 0xF0
 
 	switch marker {
-
 	case Null:
 		return nil, nil
-
-	case Float64:
-
 	case False:
 		return false, nil
 	case True:
 		return true, nil
+	case Float64:
+		return decodeFloat(r)
 
 		// Ints
 	case Int8:
@@ -168,26 +165,7 @@ func (decoder Decoder) Decode() (interface{}, error) {
 	case EndOfStream:
 	}
 
-	return nil, fmt.Errorf("decode: unsupported type: %x", marker)
-}
-
-func decodeInt(r io.Reader, size int) (int, error) {
-	i := 0
-	b := make([]byte, size)
-	n, err := r.Read(b[:])
-	if err != nil {
-		return i, err
-	}
-	if n != cap(b) {
-		return i, fmt.Errorf("failed to read all bytes")
-	}
-
-	buf := bytes.NewReader([]byte(b[:]))
-	err = binary.Read(buf, binary.BigEndian, &i)
-	if err != nil {
-		return i, err
-	}
-	return i, nil
+	return nil, fmt.Errorf("decoding error: unsupported type: %x", marker)
 }
 
 func decodeByte(r io.Reader, size int) ([]byte, error) {
@@ -210,4 +188,34 @@ func decodeString(r io.Reader, size int) (string, error) {
 		return s, err
 	}
 	return string(b), nil
+}
+
+func decodeInt(r io.Reader, size int) (int, error) {
+	i := 0
+	b, err := decodeByte(r, size)
+	if err != nil {
+		return i, err
+	}
+
+	buf := bytes.NewReader(b)
+	err = binary.Read(buf, binary.BigEndian, &i)
+	if err != nil {
+		return i, err
+	}
+	return i, nil
+}
+
+func decodeFloat(r io.Reader) (float64, error) {
+	f := 0.0
+	b, err := decodeByte(r, 8)
+	if err != nil {
+		return f, err
+	}
+
+	buf := bytes.NewReader(b)
+	err = binary.Read(buf, binary.BigEndian, &f)
+	if err != nil {
+		return f, err
+	}
+	return f, nil
 }
