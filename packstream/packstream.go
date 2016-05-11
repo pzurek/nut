@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 )
 
 // PackStream marker declarations
@@ -47,9 +48,12 @@ const (
 	Struct16 = 0xDD // 221
 
 	EndOfStream = 0xDF // 223
+
+	MinTinyInt = -16
+	MaxTinyInt = 127
 )
 
-type PackStreamType int
+type Type int
 
 // PackStream types
 const (
@@ -178,6 +182,29 @@ func decodeString(r io.Reader, size int) (string, error) {
 	return string(b), nil
 }
 
+func encodeInt(i int) (interface{}, error) {
+	switch {
+	case i >= MinTinyInt && i <= MaxTinyInt:
+		return byte(i), nil
+	case i < MinTinyInt && i >= math.MinInt8:
+	case i > MaxTinyInt && i <= math.MaxInt8:
+		return bytesFromInt(int8(i))
+	case i < math.MinInt8 && i >= math.MinInt16:
+	case i > math.MaxInt8 && i <= math.MaxInt16:
+		return bytesFromInt(int16(i))
+	case i < math.MinInt16 && i >= math.MinInt32:
+	case i > math.MaxInt16 && i <= math.MaxInt32:
+		return bytesFromInt(int32(i))
+	}
+	return bytesFromInt(int64(i))
+}
+
+func bytesFromInt(i interface{}) ([]byte, error) {
+	b := &bytes.Buffer{}
+	err := binary.Write(b, binary.BigEndian, i)
+	return b.Bytes(), err
+}
+
 func decodeInt(r io.Reader, size int) (int, error) {
 	i := 0
 	b, err := decodeBytes(r, size)
@@ -207,22 +234,50 @@ func decodeFloat(r io.Reader) (float64, error) {
 	}
 	return f, nil
 }
+
 func (decoder *Decoder) peekNextType() PackStreamType {
 	reader := bufio.NewReader(decoder.r)
 	marker, err := reader.Peek(1)
 	if err != nil {
-
+		return PSNull
 	}
 	markerHighNibble := marker & 0xF0
+
 	switch markerHighNibble {
 	case TinyString:
 		return PSString
+	case TinyList:
+		return PSList
+	case TinyMap:
+		return PSMap
+	case TinyStruct:
+		return PSStruct
 	}
-    case TinyList:
-    return PSList
-    case TinyMap:
-    return PSMap
-    case TinyStruct:
-    return PSStruct
 
+	switch marker {
+	case Null:
+		return PSNull
+	case True:
+	case False:
+		return PSBool
+	case Float64:
+		return PSFloat
+	case Bytes8:
+	case Bytes16:
+	case Bytes32:
+		return PSBytes
+	case String8:
+	case String16:
+	case String32:
+		return PSString
+	case List8:
+	case List16:
+	case List32:
+		return PSList
+	case Struct8:
+	case Struct16:
+		return PSStruct
+	default:
+		return PSInt
+	}
 }
