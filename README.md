@@ -1,2 +1,2 @@
 # nut
-The Bolt goes through it
+*Bolt* goes right through it
