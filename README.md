@@ -1,2 +1,2 @@
 # nut
-*Bolt* goes right through it
+**_Bolt_** goes right through it
