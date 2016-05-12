@@ -112,12 +112,6 @@ func decodeString(r io.Reader, size int) (string, error) {
 	return string(b), nil
 }
 
-func bytesFromInt(i interface{}) ([]byte, error) {
-	b := &bytes.Buffer{}
-	err := binary.Write(b, binary.BigEndian, i)
-	return b.Bytes(), err
-}
-
 func decodeInt(r io.Reader, size int) (int, error) {
 	i := 0
 	b, err := decodeBytes(r, size)
