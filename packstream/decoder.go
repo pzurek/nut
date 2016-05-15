@@ -144,11 +144,11 @@ func decodeFloat(r io.Reader) (float64, error) {
 
 func (decoder *Decoder) peekNextType() Type {
 	reader := bufio.NewReader(decoder.r)
-	markerbytes, err := reader.Peek(1)
+	markerBytes, err := reader.Peek(1)
 	if err != nil {
 		return PSNull
 	}
-	marker := markerbytes[0]
+	marker := markerBytes[0]
 	markerHighNibble := marker & 0xF0
 
 	switch markerHighNibble {
