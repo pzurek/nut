@@ -39,7 +39,7 @@ func (e *Encoder) encodeInt(i int) error {
 	var err error
 
 	switch {
-	case i < MinTinyInt && i >= math.MinInt8, i > MaxTinyInt && i <= math.MaxInt8:
+	case i < MinTinyInt && i >= math.MinInt8:
 		b, err = numberToBytes(int8(i))
 	case i < math.MinInt8 && i >= math.MinInt16, i > math.MaxInt8 && i <= math.MaxInt16:
 		b, err = numberToBytes(int16(i))
@@ -80,7 +80,7 @@ func (e *Encoder) encodeString(s string) error {
 
 // numberToBytes is a little wrapper around binary.Write
 // it takes any fixed size number (int8, int64, float64 etc, but not int)
-// and returns BigEndianbytes
+// and returns BigEndian bytes
 func numberToBytes(n interface{}) ([]byte, error) {
 	b := &bytes.Buffer{}
 	err := binary.Write(b, binary.BigEndian, n)
@@ -111,6 +111,18 @@ func (e *Encoder) encodeInt32Header() error {
 
 func (e *Encoder) encodeInt64Header() error {
 	return e.write(Int64)
+}
+
+func (e *Encoder) encodeBytesHeader(bytes []byte) error {
+	switch len(bytes) {
+	case condition:
+		
+	}
+	err := e.write(bytes...)
+	if err != nil {
+		return err
+	}
+	return e.write(byte(len(bytes)))
 }
 
 func (e *Encoder) encodeBoolHeader(b bool) error {
